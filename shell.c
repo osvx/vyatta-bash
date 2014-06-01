@@ -492,7 +492,7 @@ main (argc, argv, env)
   if (dump_translatable_strings)
     read_but_dont_execute = 1;
 
-  if (running_setuid && privileged_mode == 0)
+  if (running_setuid && privileged_mode == 0 && act_like_sh == 0)
     disable_priv_mode ();
 
   /* Need to get the argument to a -c option processed in the
@@ -743,6 +743,8 @@ main (argc, argv, env)
       /* Initialize terminal state for interactive shells after the
 	 .bash_profile and .bashrc are interpreted. */
       get_tty_state ();
+
+      initialize_logging();
     }
 
 #if !defined (ONESHOT)

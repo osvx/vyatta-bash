@@ -1310,9 +1310,11 @@ find_cmd_start (start)
   /* Flags == SD_NOJMP only because we want to skip over command substitutions
      in assignment statements.  Have to test whether this affects `standalone'
      command substitutions as individual words. */
+  if (!in_vyatta_restricted_mode(OUTPUT)) {
   while (((s = skip_to_delim (rl_line_buffer, os, COMMAND_SEPARATORS, SD_NOJMP/*|SD_NOSKIPCMD*/)) <= start) &&
 	 rl_line_buffer[s])
     os = s+1;
+  }
   return os;
 }
 
@@ -1322,7 +1324,11 @@ find_cmd_end (end)
 {
   register int e;
 
-  e = skip_to_delim (rl_line_buffer, end, COMMAND_SEPARATORS, SD_NOJMP);
+  if (!in_vyatta_restricted_mode(OUTPUT)) {
+    e = skip_to_delim (rl_line_buffer, end, COMMAND_SEPARATORS, SD_NOJMP);
+  } else {
+    e = strlen(rl_line_buffer);
+  }
   return e;
 }
 
@@ -1423,7 +1429,9 @@ attempt_shell_completion (text, start, end)
     }
   else if (member (rl_line_buffer[ti], command_separator_chars))
     {
-      in_command_position++;
+      if (!in_vyatta_restricted_mode(OUTPUT)) {
+        in_command_position++;
+      }
 
       if (check_redir (ti) == 1)
 	in_command_position = 0;
@@ -1447,6 +1455,7 @@ attempt_shell_completion (text, start, end)
      succeed.  Don't bother if readline found a single quote and we are
      completing on the substring.  */
   if (*text == '`' && rl_completion_quote_character != '\'' &&
+        !in_vyatta_restricted_mode(OUTPUT) &&
 	(in_command_position || (unclosed_pair (rl_line_buffer, start, "`") &&
 				 unclosed_pair (rl_line_buffer, end, "`"))))
     matches = rl_completion_matches (text, command_subst_completion_function);
@@ -1454,7 +1463,8 @@ attempt_shell_completion (text, start, end)
 #if defined (PROGRAMMABLE_COMPLETION)
   /* Attempt programmable completion. */
   have_progcomps = prog_completion_enabled && (progcomp_size () > 0);
-  if (matches == 0 && (in_command_position == 0 || text[0] == '\0') &&
+  if (matches == 0 && 
+      (in_vyatta_restricted_mode(OUTPUT) || in_command_position == 0 || text[0] == '\0') &&
       current_prompt_string == ps1_prompt)
     {
       int s, e, s1, e1, os, foundcs;
@@ -1498,6 +1508,7 @@ attempt_shell_completion (text, start, end)
         prog_complete_matches = programmable_completions ("_EmptycmD_", text, s, e, &foundcs);
       else if (start == end && text[0] == '\0' && s1 > start && whitespace (rl_line_buffer[start]))
         foundcs = 0;		/* whitespace before command name */
+#if 0
       else if (e > s && was_assignment == 0 && e1 == end && rl_line_buffer[e] == 0 && whitespace (rl_line_buffer[e-1]) == 0)
 	{
 	  /* not assignment statement, but still want to perform command
@@ -1505,7 +1516,9 @@ attempt_shell_completion (text, start, end)
 	  foundcs = 0;
 	  in_command_position = s == start && STREQ (n, text);	/* XXX */
 	}
-      else if (e > s && was_assignment == 0 && have_progcomps)
+#endif
+      else if ((e > s || (in_vyatta_restricted_mode(OUTPUT) && strcmp(n, text) == 0)) && 
+              was_assignment == 0 && have_progcomps)
 	{
 	  prog_complete_matches = programmable_completions (n, text, s, e, &foundcs);
 	  /* command completion if programmable completion fails */
@@ -1563,6 +1576,11 @@ bash_default_completion (text, start, end, qc, compflags)
   char **matches, *t;
 
   matches = (char **)NULL;
+
+  if (in_vyatta_restricted_mode(OUTPUT)) {
+    rl_ignore_some_completions_function = bash_ignore_everything;
+    return matches;
+  }
 
   /* New posix-style command substitution or variable name? */
   if (!matches && *text == '$')
