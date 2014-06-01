@@ -1,8 +1,9 @@
 vyatta-bash (4.3-18+osvx1+projectx1) unstable; urgency=medium
 
   * Upgraded to bash 4.3-18 to be 14.04 LTS compatible
+  * Added old debian package files
 
- -- Valentin Yakovenkov <yakovenkov@gmail.com>  Sun, 01 Jun 2014 15:37:57 +0400
+ -- Valentin Yakovenkov <yakovenkov@gmail.com>  Sun, 01 Jun 2014 15:40:35 +0400
 
 vyatta-bash (4.1-3+vyos1+helium1) unstable; urgency=low
 
